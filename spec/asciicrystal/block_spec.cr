@@ -556,6 +556,30 @@ describe "Blocks" do
       output.should contain("Tiger")
     end
 
+    it "preserves hyphens and underscores in alt text given in the macro" do
+      input = "image::images/tiger.png[Le tigre semi-sauvage]"
+      output = convert_string_to_embedded(input)
+      output.should contain(%(alt="Le tigre semi-sauvage"))
+    end
+
+    it "preserves hyphens in alt text given as a block attribute" do
+      input = "[Le tigre semi-sauvage]\nimage::images/tiger.png[]"
+      output = convert_string_to_embedded(input)
+      output.should contain(%(alt="Le tigre semi-sauvage"))
+    end
+
+    it "preserves hyphens in alt text given to the inline image macro" do
+      input = "Voyez image:images/tiger.png[Le tigre semi-sauvage] ici."
+      output = convert_string_to_embedded(input)
+      output.should contain(%(alt="Le tigre semi-sauvage"))
+    end
+
+    it "derives alt text from the file name, hyphens becoming spaces" do
+      input = "image::images/white-tiger_cub.png[]"
+      output = convert_string_to_embedded(input)
+      output.should contain(%(alt="white tiger cub"))
+    end
+
     it "converts SVG image using img element by default" do
       # TODO: image block macro not yet fully rendering
       input = "image::tiger.svg[Tiger]"

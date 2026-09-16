@@ -1111,7 +1111,13 @@ module Asciicrystal
               # Map positional attributes for image/video/audio
               if blk_ctx == :image
                 if !attributes.has_key?("alt")
-                  attributes["alt"] = (attributes.delete("1") || File.basename(target, File.extname(target))).tr("-_", " ")
+                  # Seul le repli déduit du nom de fichier troque tirets et
+                  # soulignés contre des espaces : « white-tiger.png » donne
+                  # « white tiger ». Un libellé écrit par l'auteur est repris
+                  # tel quel, sans quoi « géomètre-expert » y perdrait son
+                  # trait d'union. C'est aussi ce que fait le macro inline.
+                  attributes["alt"] = attributes.delete("1") ||
+                                      File.basename(target, File.extname(target)).tr("-_", " ")
                 else
                   attributes.delete("1")
                 end
