@@ -621,10 +621,41 @@ module Asciicrystal
             # tort dans le texte du lien.
             url_part = md[4]? || md[6]? || md[7]? || ""
             target = scheme + url_part
-            # Texte du lien : le libellé explicite de la forme macro
-            # (md[5]) s'il est non vide ; sinon l'URL complète (target),
-            # conformément au rendu d'une URL bare en AsciiDoc.
+            # Contenu des crochets de la forme macro (md[5]). Ce n'est pas
+            # seulement un libellé : AsciiDoc y attend une liste d'attributs
+            # dont le texte est le premier positionnel. Faute de l'analyser,
+            # `window`, `role` ou `title` n'atteignaient jamais le noeud et
+            # la liste entière s'affichait telle quelle comme libellé.
+            link_attrs = {} of String => String
+            link_id : String? = nil
             link_text = md[5]?
+
+            if (bracket = link_text) && !bracket.empty?
+              # Suffixe `^` : raccourci officiel de `window=_blank`. Le
+              # convertisseur ajoute `rel="noopener"` de lui-même.
+              if bracket.ends_with?('^')
+                bracket = bracket[0...-1]
+                link_attrs["window"] = "_blank"
+              end
+
+              # N'analyser que si le contenu ressemble à une liste
+              # d'attributs : un libellé ordinaire ne doit pas être
+              # découpé, ni perdre ses guillemets.
+              if bracket.includes?(',') || bracket.includes?('=') || bracket.starts_with?('"')
+                parsed = parse_inline_attributes(bracket, ["text"])
+                bracket = parsed["text"]? || ""
+                parsed.each do |key, value|
+                  next if key == "text"
+                  # `id` n'est pas un attribut du noeud mais un paramètre
+                  # de son constructeur.
+                  key == "id" ? (link_id = value) : (link_attrs[key] = value)
+                end
+              end
+
+              link_text = bracket
+            end
+
+            # Sinon l'URL complète, conformément au rendu d'une URL bare.
             link_text = target if link_text.nil? || link_text.empty?
             # `InlineLinkRx` capture en groupe 1 le caractère qui précède
             # l'URL (espace, parenthèse, crochet, point-virgule…) : il
@@ -636,7 +667,8 @@ module Asciicrystal
             #     n'est renseigné que par cette alternative.
             prefix = "" if prefix == "link:" || !md[2]?.nil?
             prefix + Inline.new(self.as(AbstractBlock), :anchor, link_text,
-              type: :link, target: target).convert
+              id: link_id, type: :link, target: target,
+              attributes: link_attrs).convert
           end
         end
       end

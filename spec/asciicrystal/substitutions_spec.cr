@@ -542,6 +542,46 @@ describe "Substitutions" do
         result.should_not contain("</a>&gt;")
       end
 
+      # Régression : le contenu des crochets était pris en bloc comme
+      # libellé, sans jamais être analysé. Aucun attribut de lien
+      # (window, role, title…) n'atteignait donc le noeud.
+      it "honors window=_blank and adds rel=noopener" do
+        block = create_block
+        result = block.sub_macros("https://example.com[Mon site,window=_blank]")
+        result.should eq(%(<a href="https://example.com" target="_blank" rel="noopener">Mon site</a>))
+      end
+
+      it "treats the ^ suffix as the window=_blank shorthand" do
+        block = create_block
+        result = block.sub_macros("https://example.com[Mon site^]")
+        result.should eq(%(<a href="https://example.com" target="_blank" rel="noopener">Mon site</a>))
+      end
+
+      it "honors the role attribute" do
+        block = create_block
+        result = block.sub_macros("https://example.com[Mon site,role=externe]")
+        result.should contain(%(class="externe"))
+        result.should contain(">Mon site<")
+      end
+
+      it "honors the title attribute" do
+        block = create_block
+        result = block.sub_macros("https://example.com[Mon site,title=Infobulle]")
+        result.should contain(%(title="Infobulle"))
+      end
+
+      it "keeps a comma that belongs to the link text when it is quoted" do
+        block = create_block
+        result = block.sub_macros(%(https://example.com["Ordre, section B"]))
+        result.should contain(">Ordre, section B<")
+      end
+
+      it "leaves a plain link text untouched" do
+        block = create_block
+        result = block.sub_macros("https://example.com[Mon site]")
+        result.should eq(%(<a href="https://example.com">Mon site</a>))
+      end
+
       it "should convert xref macro" do
         block = create_block
         result = block.sub_macros("xref:chapter1.adoc[Chapter 1]")
