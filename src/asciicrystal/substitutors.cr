@@ -626,8 +626,16 @@ module Asciicrystal
             # conformément au rendu d'une URL bare en AsciiDoc.
             link_text = md[5]?
             link_text = target if link_text.nil? || link_text.empty?
-            prefix = "" if prefix == "link:"
-            Inline.new(self.as(AbstractBlock), :anchor, link_text,
+            # `InlineLinkRx` capture en groupe 1 le caractère qui précède
+            # l'URL (espace, parenthèse, crochet, point-virgule…) : il
+            # appartient au texte et doit être réémis devant l'ancre.
+            # Deux exceptions, où le préfixe est un délimiteur :
+            #   - `link:` introduit la macro ;
+            #   - `&lt;`, dans la forme `<scheme://url>`, dont le `&gt;`
+            #     final est lui aussi consommé par la regex. Le groupe 2
+            #     n'est renseigné que par cette alternative.
+            prefix = "" if prefix == "link:" || !md[2]?.nil?
+            prefix + Inline.new(self.as(AbstractBlock), :anchor, link_text,
               type: :link, target: target).convert
           end
         end

@@ -512,6 +512,36 @@ describe "Substitutions" do
         result.should contain(">Mon site<")
       end
 
+      # Régression : `InlineLinkRx` capture en groupe 1 le caractère qui
+      # précède l'URL (espace, parenthèse, crochet…). Il était calculé
+      # puis jamais réémis, donc avalé.
+      it "keeps the space preceding a bare URL" do
+        block = create_block
+        result = block.sub_macros("Voir https://example.com ici")
+        result.should contain("Voir <a")
+      end
+
+      it "keeps the space preceding the scheme://url[text] form" do
+        block = create_block
+        result = block.sub_macros("Ordre, https://example.com[site]")
+        result.should contain(", <a")
+      end
+
+      it "keeps an opening parenthesis before a URL" do
+        block = create_block
+        result = block.sub_macros("Tutelle (https://example.com[site])")
+        result.should contain("(<a")
+        result.should contain("</a>)")
+      end
+
+      it "drops the angle brackets of the &lt;scheme://url&gt; form" do
+        block = create_block
+        result = block.sub_macros("Voir &lt;https://example.com&gt; ici")
+        result.should contain("Voir <a")
+        result.should_not contain("&lt;<a")
+        result.should_not contain("</a>&gt;")
+      end
+
       it "should convert xref macro" do
         block = create_block
         result = block.sub_macros("xref:chapter1.adoc[Chapter 1]")
