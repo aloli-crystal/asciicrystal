@@ -17,8 +17,8 @@ This shard provides a complete AsciiDoc processing pipeline in Crystal: an Abstr
 | 2025-10-24
 
 | *Shard Crystal asciicrystal*
-| 0.1.0
-| 2026-04-02
+| 2.0.26.14
+| 2026-09-16
 |===
 
 NOTE: Ce shard est un portage de la gem Ruby Asciidoctor **2.0.26**.
@@ -34,34 +34,34 @@ Vérifier les https://rubygems.org/gems/asciidoctor/versions[versions sur RubyGe
 |===
 | Component | Crystal module | Ruby source
 
-| Abstract node (base class) | `Asciidoctor::AbstractNode` | `abstract_node.rb`
-| Abstract block | `Asciidoctor::AbstractBlock` | `abstract_block.rb`
-| API (load / convert) | `Asciidoctor.load`, `Asciidoctor.convert` | `load.rb`, `convert.rb`
-| Attribute list parser | `Asciidoctor::AttributeList` | `attribute_list.rb`
-| Block | `Asciidoctor::Block` | `block.rb`
-| Callouts | `Asciidoctor::Callouts` | `callouts.rb`
-| CLI (options / invoker) | `Asciidoctor::Cli::Options`, `Asciidoctor::Cli::Invoker` | `cli/options.rb`, `cli/invoker.rb`
-| Constants | `Asciidoctor::*` | `asciidoctor.rb`
-| Content model (enum) | `Asciidoctor::ContentModel` | (symbols in Ruby)
-| Converter base | `Asciidoctor::Converter::Base` | `converter.rb`
-| Converter DocBook 5 | `Asciidoctor::Converter::DocBook5Converter` | `converter/docbook5.rb`
-| Converter HTML5 | `Asciidoctor::Converter::Html5Converter` | `converter/html5.rb`
-| Converter Manpage | `Asciidoctor::Converter::ManPageConverter` | `converter/manpage.rb`
-| Document | `Asciidoctor::Document` | `document.rb`
-| Document catalog | `Asciidoctor::Catalog` | (part of `document.rb`)
-| Helpers | `Asciidoctor::Helpers` | `helpers.rb`
-| Inline | `Asciidoctor::Inline` | `inline.rb`
-| List / ListItem | `Asciidoctor::List`, `Asciidoctor::ListItem` | `list.rb`
-| Logging | `Asciidoctor::Logger` | `logging.rb`
-| Parser | `Asciidoctor::Parser` | `parser.rb`
-| Reader / PreprocessorReader | `Asciidoctor::Reader` | `reader.rb`
-| Regular expressions | `Asciidoctor::*Rx` | `rx.rb`
-| Safe mode | `Asciidoctor::SafeMode` | (constants in `asciidoctor.rb`)
-| Section | `Asciidoctor::Section` | `section.rb`
-| Source location | `Asciidoctor::SourceLocation` | (part of `abstract_block.rb`)
-| Substitution (flags enum) | `Asciidoctor::Substitution` | `substitutors.rb`
-| Substitutors (inline engine) | `Asciidoctor::Substitutors` | `substitutors.rb`
-| Table / Column / Cell | `Asciidoctor::Table`, `Table::Column`, `Table::Cell` | `table.rb`
+| Abstract node (base class) | `Asciicrystal::AbstractNode` | `abstract_node.rb`
+| Abstract block | `Asciicrystal::AbstractBlock` | `abstract_block.rb`
+| API (load / convert) | `Asciicrystal.load`, `Asciicrystal.convert` | `load.rb`, `convert.rb`
+| Attribute list parser | `Asciicrystal::AttributeList` | `attribute_list.rb`
+| Block | `Asciicrystal::Block` | `block.rb`
+| Callouts | `Asciicrystal::Callouts` | `callouts.rb`
+| CLI (options / invoker) | `Asciicrystal::Cli::Options`, `Asciicrystal::Cli::Invoker` | `cli/options.rb`, `cli/invoker.rb`
+| Constants | `Asciicrystal::*` | `asciidoctor.rb`
+| Content model (enum) | `Asciicrystal::ContentModel` | (symbols in Ruby)
+| Converter base | `Asciicrystal::Converter::Base` | `converter.rb`
+| Converter DocBook 5 | `Asciicrystal::Converter::DocBook5Converter` | `converter/docbook5.rb`
+| Converter HTML5 | `Asciicrystal::Converter::Html5Converter` | `converter/html5.rb`
+| Converter Manpage | `Asciicrystal::Converter::ManPageConverter` | `converter/manpage.rb`
+| Document | `Asciicrystal::Document` | `document.rb`
+| Document catalog | `Asciicrystal::Catalog` | (part of `document.rb`)
+| Helpers | `Asciicrystal::Helpers` | `helpers.rb`
+| Inline | `Asciicrystal::Inline` | `inline.rb`
+| List / ListItem | `Asciicrystal::List`, `Asciicrystal::ListItem` | `list.rb`
+| Logging | `Asciicrystal::Logger` | `logging.rb`
+| Parser | `Asciicrystal::Parser` | `parser.rb`
+| Reader / PreprocessorReader | `Asciicrystal::Reader` | `reader.rb`
+| Regular expressions | `Asciicrystal::*Rx` | `rx.rb`
+| Safe mode | `Asciicrystal::SafeMode` | (constants in `asciidoctor.rb`)
+| Section | `Asciicrystal::Section` | `section.rb`
+| Source location | `Asciicrystal::SourceLocation` | (part of `abstract_block.rb`)
+| Substitution (flags enum) | `Asciicrystal::Substitution` | `substitutors.rb`
+| Substitutors (inline engine) | `Asciicrystal::Substitutors` | `substitutors.rb`
+| Table / Column / Cell | `Asciicrystal::Table`, `Table::Column`, `Table::Cell` | `table.rb`
 |===
 
 === Not yet implemented
@@ -112,17 +112,27 @@ https://github.com/aloli-crystal/asciicrystal-pdf[asciicrystal-pdf].
 require "asciicrystal"
 
 # Convert an AsciiDoc string to HTML5
-html = Asciidoctor.convert("= Hello\n\nA *bold* paragraph.")
+html = Asciicrystal.convert("= Hello\n\nA *bold* paragraph.")
 puts html
 
 # Convert to DocBook 5
-docbook = Asciidoctor.convert("= Hello\n\nA paragraph.", {"backend" => "docbook5"})
+docbook = Asciicrystal.convert("= Hello\n\nA paragraph.", {"backend" => "docbook5"})
 puts docbook
 
+# Convert to an HTML *fragment*, without the <html> wrapper
+fragment = Asciicrystal.convert("A *bold* paragraph.", {"standalone" => "false"})
+puts fragment  # => <div class="paragraph">…</div>, with no <html> wrapper
+
 # Load a document (parse without converting)
-doc = Asciidoctor.load("= My Document\n\n== Section One\n\nParagraph.")
+doc = Asciicrystal.load("= My Document\n\n== Section One\n\nParagraph.")
 puts doc.doctitle  # => "My Document"
 ----
+
+IMPORTANT: By default `convert` returns a *standalone* HTML document —
+`<html>`, `<head>` and a fallback stylesheet included — as Ruby Asciidoctor
+does. Pass `{"standalone" => "false"}` (or `{"header_footer" => "false"}`)
+to obtain an embeddable fragment. The full list of accepted keys is
+`known_options` in `src/asciicrystal/api.cr`.
 
 === Low-level parsing
 
@@ -143,21 +153,21 @@ This is a paragraph.
 Another paragraph with *bold* text.
 ASCIIDOC
 
-doc = Asciidoctor::Document.new
-reader = Asciidoctor::Reader.new(source.lines)
-Asciidoctor::Parser.parse(reader, doc)
+doc = Asciicrystal::Document.new
+reader = Asciicrystal::Reader.new(source.lines)
+Asciicrystal::Parser.parse(reader, doc)
 
 # Access the document title
 puts doc.doctitle  # => "My Document"
 
 # Traverse the tree
 doc.find_by(context: :paragraph).each do |block|
-  puts block.as(Asciidoctor::Block).source
+  puts block.as(Asciicrystal::Block).source
 end
 
 # Access sections
 doc.blocks.each do |block|
-  if block.is_a?(Asciidoctor::Section)
+  if block.is_a?(Asciicrystal::Section)
     puts "Section: #{block.title} (level #{block.level})"
   end
 end
@@ -170,22 +180,22 @@ end
 require "asciicrystal"
 
 # Create a document with an HTML5 converter
-doc = Asciidoctor::Document.new
-converter = Asciidoctor::Converter::Html5Converter.new
+doc = Asciicrystal::Document.new
+converter = Asciicrystal::Converter::Html5Converter.new
 doc.converter = converter
 
 # Create a section
-section = Asciidoctor::Section.new(document: doc, parent: doc, level: 1)
+section = Asciicrystal::Section.new(document: doc, parent: doc, level: 1)
 section.title = "Introduction"
 section.id = "introduction"
 section.numeral = "1"
 doc << section
 
 # Create a paragraph block
-para = Asciidoctor::Block.new(
+para = Asciicrystal::Block.new(
   parent_block: section,
   context: :paragraph,
-  content_model: Asciidoctor::ContentModel::Simple,
+  content_model: Asciicrystal::ContentModel::Simple,
   source: "Hello, AsciiDoc!"
 )
 section << para
