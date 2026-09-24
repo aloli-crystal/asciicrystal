@@ -32,6 +32,9 @@ module Asciicrystal
 
       @xml_mode : Bool
       @void_element_slash : String
+      # Vrai pendant la résolution du texte d'un renvoi : un titre ciblé
+      # qui contient lui-même un renvoi ne relance pas la résolution.
+      @resolving_xref = false
 
       def initialize(backend : String = "html5", htmlsyntax : String = "html")
         super(backend)
@@ -517,7 +520,7 @@ Your browser does not support the audio tag.
         case node.type
         when :xref
           attrs = node.role ? %( class="#{node.role}") : ""
-          text = node.text || node.attributes["refid"]? || ""
+          text = node.text || xref_text(node)
           %(<a href="#{node.target}"#{attrs}>#{text}</a>)
         when :ref
           %(<a id="#{node.id}"></a>)
@@ -533,6 +536,28 @@ Your browser does not support the audio tag.
         else
           ""
         end
+      end
+
+      # Texte d'un renvoi sans libellé, comme Asciidoctor : `xreftext` de
+      # la cible (titre de section par défaut, selon `xrefstyle`), sinon
+      # `[id]`. Un renvoi vers un autre document (`doc.adoc#id`) garde
+      # son identifiant, faute de chemin résolu.
+      private def xref_text(node : Inline) : String
+        refid = node.attributes["refid"]? || ""
+        ref = node.document.catalog.refs[refid]?
+        return refid.includes?('#') || refid.includes?(".adoc") ? refid : "[#{refid}]" unless ref
+        return "[#{refid}]" if @resolving_xref
+        begin
+          @resolving_xref = true
+          xrefstyle = node.attr("xrefstyle", nil, true)
+          text = case ref
+                 when AbstractBlock, Inline then ref.xreftext(xrefstyle)
+                 end
+        ensure
+          @resolving_xref = false
+        end
+        return "[#{refid}]" if text.nil? || text.empty?
+        text.includes?("<a") ? text.gsub(DropAnchorRx, "") : text
       end
 
       def convert_inline_break(node : AbstractNode) : String

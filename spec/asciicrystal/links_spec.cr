@@ -216,6 +216,19 @@ describe "Links" do
       doc.blocks.size.should be >= 1
     end
 
+    it "uses the section title as text of an xref without label" do
+      # Régression : le texte du lien valait l'identifiant (`tigers`) au
+      # lieu du titre de la section ciblée, avant comme après celle-ci.
+      input = "Avant <<tigers>>.\n\n[[tigers]]\n== Les tigres\n\nAprès <<tigers>>."
+      html = Asciicrystal.convert(input, {"safe" => "safe"} of String => String)
+      html.scan(%(<a href="#tigers">Les tigres</a>)).size.should eq(2)
+    end
+
+    it "shows the refid in brackets when the xref target is unknown" do
+      html = Asciicrystal.convert("Voir <<absent>>.", {"safe" => "safe"} of String => String)
+      html.should contain(%(<a href="#absent">[absent]</a>))
+    end
+
     it "should parse xref shorthand to section" do
       doc = link_doc("<<_section_b>>\n\n== Section A\n\n== Section B")
       doc.blocks.size.should be >= 1
