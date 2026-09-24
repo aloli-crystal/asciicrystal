@@ -911,5 +911,18 @@ describe Asciicrystal::Table do
       table = doc.blocks[0].as(Asciicrystal::Table)
       table.rows.body.sum(&.size).should eq(5)
     end
+
+    it "does not read a cell spec at the end of the last cell of the table" do
+      # Régression : la dernière cellule `*11 570*` (gras d'un nombre à
+      # séparateur de milliers) finit par ` 570*`, que CellSpecEndRx
+      # lisait comme le multiplicateur « répéter 570× » d'une cellule
+      # suivante inexistante : la cellule devenait `*11`. Aucun `|` ne
+      # suit le dernier fragment, il ne peut donc porter aucun spec.
+      input = "[cols=\"2,2\"]\n|===\n| a | b\n| *10 400* | *11 570*\n|==="
+      doc = table_document_from_string(input)
+      table = doc.blocks[0].as(Asciicrystal::Table)
+      table.rows.body.size.should eq(2)
+      table.rows.body[1].map(&.text.strip).should eq(["<strong>10 400</strong>", "<strong>11 570</strong>"])
+    end
   end
 end

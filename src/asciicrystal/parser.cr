@@ -1979,7 +1979,15 @@ module Asciicrystal
                          end
           (1...fragments.size).each do |i|
             frag = fragments[i]
-            spec_for_next, cell_content = parse_cellspec(frag, :end)
+            # Comme Asciidoctor, qui n'analyse que le texte précédant un
+            # délimiteur : le dernier fragment n'est suivi d'aucun `|` et
+            # ne porte donc aucun spec. Sinon `*11 570*` finirait par un
+            # multiplicateur « 570* » et la cellule deviendrait `*11`.
+            spec_for_next, cell_content = if i == fragments.size - 1
+                                            {nil, frag}
+                                          else
+                                            parse_cellspec(frag, :end)
+                                          end
             spec_for_next ||= {} of String => String | Int32
             # Strip leading newline from cell content (from line join)
             cell_content = cell_content.lstrip('\n').rstrip
