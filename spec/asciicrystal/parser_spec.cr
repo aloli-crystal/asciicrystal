@@ -759,4 +759,29 @@ describe Asciicrystal::Parser do
       Asciicrystal::Parser.parse_manpage_header(reader, doc, attrs)
     end
   end
+
+  describe "légende des images de bloc" do
+    it "numérote une image titrée comme une figure" do
+      doc = Asciicrystal.load(".Mon plan\nimage::plan.svg[]")
+      image = doc.blocks[0]
+      image.context.should eq(:image)
+      image.captioned_title.should eq("Figure 1. Mon plan")
+    end
+
+    it "incrémente le numéro d'une image à l'autre" do
+      doc = Asciicrystal.load(".Premier plan\nimage::a.svg[]\n\n.Second plan\nimage::b.svg[]")
+      doc.blocks[0].captioned_title.should eq("Figure 1. Premier plan")
+      doc.blocks[1].captioned_title.should eq("Figure 2. Second plan")
+    end
+
+    it "retire le préfixe quand figure-caption est désactivé" do
+      doc = Asciicrystal.load(":figure-caption!:\n\n.Mon plan\nimage::plan.svg[]")
+      doc.blocks[0].captioned_title.should eq("Mon plan")
+    end
+
+    it "ne légende pas une image sans titre" do
+      doc = Asciicrystal.load("image::plan.svg[]")
+      doc.blocks[0].as(Asciicrystal::AbstractBlock).caption.should be_nil
+    end
+  end
 end

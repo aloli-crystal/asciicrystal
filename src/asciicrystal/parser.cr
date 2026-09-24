@@ -1377,8 +1377,11 @@ module Asciicrystal
       block.source_location = reader.cursor_at_mark.to_source_location if document.sourcemap?
       if (title = attributes.delete("title"))
         block.title = title
-        if CAPTION_ATTRIBUTE_NAMES.has_key?(block.context.to_s)
-          block.assign_caption(attributes.delete("caption"))
+        # Une image de bloc titrée est légendée comme une figure
+        # (« Figure 1. »), comme le fait Asciidoctor pour la macro image::.
+        caption_context = block.context == :image ? :figure : block.context
+        if CAPTION_ATTRIBUTE_NAMES.has_key?(caption_context.to_s)
+          block.assign_caption(attributes.delete("caption"), caption_context)
         end
       end
       effective_style = style || attributes["style"]? || block.style
