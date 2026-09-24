@@ -447,7 +447,7 @@ module Asciicrystal
         m = CellSpecStartRx.match(spec_part)
         return {nil, line} unless m
         return { {} of String => String | Int32, rest } if m[0].empty?
-      elsif (m = CellSpecEndRx.match(line.rindex('\n').try { |i| line[(i + 1)..] } || line))
+      elsif (m = CellSpecEndRx.match(line.rindex('\n').try { |i| line[i..] } || line))
         # Un cell spec de fin (`2*`, `3+`, alignement, style) ne peut
         # vivre que sur la MÊME ligne que le `|` de la cellule suivante.
         # On NE le cherche donc que sur la DERNIÈRE ligne du fragment :
@@ -458,9 +458,12 @@ module Asciicrystal
         if m[0].lstrip.empty?
           return { {} of String => String | Int32, line.rstrip }
         end
-        # `m.pre_match` est relatif à la dernière ligne seule ; on
+        # La dernière ligne est prise AVEC le saut de ligne qui la
+        # précède : il sert de blanc exigé avant le spec, d'où `5+|` ou
+        # `.2+|` reconnus en début de ligne, comme dans Asciidoctor.
+        # `m.pre_match` est relatif à cette dernière ligne ; on
         # réattache le contenu des lignes précédentes en tête.
-        rest = (line.rindex('\n').try { |i| line[0..i] } || "") + m.pre_match
+        rest = (line.rindex('\n').try { |i| line[0...i] } || "") + m.pre_match
       else
         # Check if the entire fragment is a spec (no content, no leading space needed)
         # This handles cases like "3*" or "2+" at the start of a fragment

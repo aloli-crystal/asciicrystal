@@ -912,6 +912,28 @@ describe Asciicrystal::Table do
       table.rows.body.sum(&.size).should eq(5)
     end
 
+    it "applies a cell spec written at the start of a line to the next cell" do
+      # Régression : `5+|` en début de ligne restait collé au contenu de
+      # la cellule précédente (`0,02 m³\n5+`) au lieu de fusionner la
+      # cellule suivante sur 5 colonnes.
+      input = "[cols=\"6\"]\n|===\n| a | b | c | d | e | 0,02 m³\n5+| Total | env. 3,6 m³\n|==="
+      doc = table_document_from_string(input)
+      table = doc.blocks[0].as(Asciicrystal::Table)
+      table.rows.body.size.should eq(2)
+      table.rows.body[0][5].text.strip.should eq("0,02 m³")
+      row = table.rows.body[1]
+      row.map(&.text.strip).should eq(["Total", "env. 3,6 m³"])
+      row[0].colspan.should eq(5)
+    end
+
+    it "applies a rowspan spec written at the start of a line" do
+      input = "[cols=\"2\"]\n|===\n| a | b\n.2+| fusion | c\n| d\n|==="
+      doc = table_document_from_string(input)
+      table = doc.blocks[0].as(Asciicrystal::Table)
+      table.rows.body[0][1].text.strip.should eq("b")
+      table.rows.body[1][0].rowspan.should eq(2)
+    end
+
     it "does not read a cell spec at the end of the last cell of the table" do
       # Régression : la dernière cellule `*11 570*` (gras d'un nombre à
       # séparateur de milliers) finit par ` 570*`, que CellSpecEndRx
