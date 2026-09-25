@@ -243,7 +243,15 @@ module Asciicrystal
       @parent = @column
       @rowspan = rowspan
       @subs = NORMAL_SUBS
-      @text = cell_text
+      # Comme Asciidoctor (Table::Cell#initialize) : une cellule
+      # littérale garde son indentation et ne perd que les sauts de ligne
+      # initiaux ; toute autre cellule perd ses blancs des deux côtés
+      # (`| janvier |` donne `janvier`, sans l'espace initiale).
+      @text = if @cell_style == :literal
+                cell_text.rstrip.lstrip('\n')
+              else
+                cell_text.strip
+              end
       # Inherit halign/valign from column if not already set in cell attributes
       @attributes["halign"] ||= @column.attributes["halign"]? || "left"
       @attributes["valign"] ||= @column.attributes["valign"]? || "top"

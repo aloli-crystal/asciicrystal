@@ -947,4 +947,31 @@ describe Asciicrystal::Table do
       table.rows.body[1].map(&.text.strip).should eq(["<strong>10 400</strong>", "<strong>11 570</strong>"])
     end
   end
+
+  # ==========================================================================
+  # Blancs autour du texte d'une cellule
+  # ==========================================================================
+  describe "cell text whitespace" do
+    it "strips the leading and trailing spaces of a cell, as Asciidoctor" do
+      # Régression : `| janvier | 370` donnait « ␣janvier » (seule
+      # l'espace de fin était retirée). Asciidoctor retire les deux.
+      input = "[cols=\"2\"]\n|===\n| janvier | 370\n|==="
+      doc = table_document_from_string(input)
+      row = doc.blocks[0].as(Asciicrystal::Table).rows.body[0]
+      row.map(&.source).should eq(["janvier", "370"])
+      row.map(&.text).should eq(["janvier", "370"])
+    end
+
+    it "strips the spaces of an asciidoc cell" do
+      input = "[cols=\"1a\"]\n|===\n|   texte  \n|==="
+      doc = table_document_from_string(input)
+      doc.blocks[0].as(Asciicrystal::Table).rows.body[0][0].source.should eq("texte")
+    end
+
+    it "keeps the indentation of a literal cell, dropping only leading newlines" do
+      input = "[cols=\"1l\"]\n|===\n|\n  indenté\n  suite  \n|==="
+      doc = table_document_from_string(input)
+      doc.blocks[0].as(Asciicrystal::Table).rows.body[0][0].source.should eq("  indenté\n  suite")
+    end
+  end
 end
