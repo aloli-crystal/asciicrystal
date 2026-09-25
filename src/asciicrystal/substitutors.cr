@@ -89,7 +89,8 @@ module Asciicrystal
     def apply_subs(text : String, subs : Array(Symbol)) : String
       return text if subs.empty?
       # Extract passthroughs before any substitutions (if text contains passthrough markers)
-      has_passthroughs = (text.includes?("++") || text.includes?("$$") || text.includes?("ss:")) &&
+      has_passthroughs = (text.includes?("+") || text.includes?("`") ||
+                          text.includes?("$$") || text.includes?("ss:")) &&
                          (subs.includes?(:macros) || subs.includes?(:quotes) || subs.includes?(:attributes))
       result = has_passthroughs ? extract_passthroughs(text) : text
       subs.each do |sub|
@@ -151,7 +152,8 @@ module Asciicrystal
 
     # Extract passthrough text from the document for reinsertion after processing.
     def extract_passthroughs(text : String) : String
-      return text unless text.includes?("++") || text.includes?("$$") || text.includes?("ss:")
+      return text unless text.includes?("+") || text.includes?("`") ||
+                         text.includes?("$$") || text.includes?("ss:")
       passthrus = @passthroughs
       result = text.gsub(InlinePassMacroRx) do |match_str, md|
         if (boundary = md[4]?)
@@ -172,7 +174,34 @@ module Asciicrystal
           match_str
         end
       end
+
+      # `+texte+` d'abord : la forme la plus spécifique, sans quoi le
+      # passthrough simple lui prendrait son contenu et laisserait les
+      # accents graves orphelins.
+      result = result.gsub(InlineLiteralMonoPassRx) do |_, md|
+        passthrus << PassthroughEntry.new(text: md[2], subs: [:specialcharacters] of Symbol,
+          type: :monospaced)
+        "#{md[1]}#{PASS_START}#{passthrus.size - 1}#{PASS_END}"
+      end
+
+      # Le passthrough simple n'existe pas en mode compatibilité : `+texte+`
+      # y désigne du monospace substitué, que `sub_quotes` prend en charge.
+      # L'extraire ici priverait `.Le +{gem}+` de sa valeur d'attribut.
+      unless compat_mode?
+        result = result.gsub(InlineSinglePlusPassRx) do |_, md|
+          passthrus << PassthroughEntry.new(text: md[2], subs: [:specialcharacters] of Symbol)
+          "#{md[1]}#{PASS_START}#{passthrus.size - 1}#{PASS_END}"
+        end
+      end
+
       result
+    end
+
+    # Le document englobant est-il en mode compatibilité ? La question se
+    # pose depuis un bloc comme depuis le document lui-même.
+    private def compat_mode? : Bool
+      doc = self.is_a?(Document) ? self.as(Document) : (self.responds_to?(:document) ? self.document : nil)
+      doc ? doc.compat_mode? : false
     end
 
     # Normalize text by stripping whitespace and folding newlines.

@@ -251,6 +251,16 @@ module Asciicrystal
   # Matches several variants of the passthrough inline macro.
   InlinePassMacroRx = /(?:(?:(\\?)\[([^\[\]]+)\])?(\\{0,2})(\+\+\+?|\$\$)(.*?)\4|(\\?)pass:([a-z]+(?:,[a-z-]+)*)?\[(|.*?[^\\])\])/m
 
+  # Monospace littéral : `+texte+` donne <code>texte</code> sans qu'aucune
+  # substitution ne s'applique au contenu. C'est la forme employée pour
+  # montrer du balisage AsciiDoc dans une documentation.
+  InlineLiteralMonoPassRx = /(^|[^`\w])`\+(\S|\S.*?\S)\+`(?![`\w])/m
+
+  # Passthrough simple : +texte+ rend le texte littéral. Les bornes suivent
+  # la règle des paires contraintes — pas de lettre avant l'ouvrante ni
+  # après la fermante —, faute de quoi « C++ » ou « a+b+c » seraient happés.
+  InlineSinglePlusPassRx = /(^|[^\w+\\])\+(\S|\S.*?\S)\+(?![+\w])/m
+
   # Matches an xref (cross-reference) inline macro.
   InlineXrefMacroRx = /\\?(?:&lt;&lt;([\p{Xwd}#\/.:{].*?)&gt;&gt;|xref:([\p{Xwd}#\/.:{].*?)\[(?:\]|(.*?[^\\])\]))/m
 

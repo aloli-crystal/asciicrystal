@@ -259,8 +259,18 @@ module Asciicrystal
 
     # Handles the body data (tbody, tfoot), applying styles and partitioning into paragraphs.
     def content : String | Array(String)
-      if @cell_style == :asciidoc && (inner = @inner_document)
-        inner.to_s
+      if @cell_style == :asciidoc
+        # Une cellule « a » porte de l'AsciiDoc à part entière — listes,
+        # blocs de code, admonitions —, et non du texte à substituer. Faute
+        # de la convertir comme un document imbriqué, la branche suivante
+        # renvoyait un Array(String) que le convertisseur HTML interpolait
+        # tel quel : la source brute de la cellule ressortait entre crochets
+        # dans la page.
+        if inner = @inner_document
+          inner.to_s
+        else
+          convertir_imbrique
+        end
       elsif @text.includes?("\n\n")
         subs_to_apply = [:specialcharacters, :quotes, :attributes, :replacements, :macros, :post_replacements] of Symbol
         @text.split(/\n{2,}/).map { |para| apply_subs(para, subs_to_apply) }
@@ -268,6 +278,17 @@ module Asciicrystal
         subs_to_apply = [:specialcharacters, :quotes, :attributes, :replacements, :macros, :post_replacements] of Symbol
         [apply_subs(@text, subs_to_apply)]
       end
+    end
+
+    # Convertit le corps de la cellule comme un document à part entière.
+    # Les attributs du document englobant y sont recopiés, sans quoi
+    # `{ville}` écrit dans une cellule ne se résoudrait plus.
+    private def convertir_imbrique : String
+      imbrique = Asciicrystal.load(@text, {"standalone" => "false"})
+      @document.attributes.each do |clef, valeur|
+        imbrique.attributes[clef] = valeur unless imbrique.attributes.has_key?(clef)
+      end
+      imbrique.convert || ""
     end
 
     def document : Document

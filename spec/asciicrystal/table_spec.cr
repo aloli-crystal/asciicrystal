@@ -962,6 +962,32 @@ describe Asciicrystal::Table do
       row.map(&.text).should eq(["janvier", "370"])
     end
 
+    it "converts the body of an asciidoc cell as nested AsciiDoc" do
+      input = "[cols=\"1a\"]\n|===\n|\n[source,ruby]\n----\nputs 1\n----\n|==="
+      output = table_convert_to_embedded(input)
+      output.should contain("<pre")
+      output.should contain("puts 1")
+      # Le contenu d'une cellule ne doit jamais fuir sous forme de
+      # structure Crystal — ni crochets, ni sauts de ligne échappés.
+      output.should_not contain("[\"")
+      output.should_not contain("\\n----")
+    end
+
+    it "converts a list in an asciidoc cell" do
+      input = "[cols=\"1a\"]\n|===\n|\n* un\n* deux\n|==="
+      output = table_convert_to_embedded(input)
+      output.should contain("<ul")
+      output.should contain("<li>")
+      output.should_not contain("* un")
+    end
+
+    it "resolves document attributes inside an asciidoc cell" do
+      input = ":ville: Paray-le-Monial\n\n[cols=\"1a\"]\n|===\n|\nÀ {ville}.\n|==="
+      output = table_convert_to_embedded(input)
+      output.should contain("Paray-le-Monial")
+      output.should_not contain("{ville}")
+    end
+
     it "strips the spaces of an asciidoc cell" do
       input = "[cols=\"1a\"]\n|===\n|   texte  \n|==="
       doc = table_document_from_string(input)

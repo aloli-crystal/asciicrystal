@@ -702,6 +702,41 @@ describe "Substitutions" do
 
   # ===== Passthroughs =====
   describe "Passthroughs" do
+    it "renders a single plus passthrough literally" do
+      block = create_block
+      restored = block.restore_passthroughs(block.extract_passthroughs("Écrivez +*gras*+ ici."))
+      restored.should eq("Écrivez *gras* ici.")
+    end
+
+    it "escapes special characters inside a single plus passthrough" do
+      block = create_block
+      restored = block.restore_passthroughs(block.extract_passthroughs("+<b>x</b>+"))
+      restored.should eq("&lt;b&gt;x&lt;/b&gt;")
+    end
+
+    it "renders a backtick-plus passthrough as literal monospace" do
+      output = Asciicrystal.convert("Écrivez `+*gras*+` ici.", {"standalone" => "false"})
+      output.should contain("<code>*gras*</code>")
+      output.should_not contain("<strong>")
+    end
+
+    it "leaves a lone plus alone" do
+      output = Asciicrystal.convert("2 + 2 = 4", {"standalone" => "false"})
+      output.should contain("2 + 2 = 4")
+    end
+
+    it "does not treat a plus inside a word as a passthrough" do
+      output = Asciicrystal.convert("C++ et a+b+c restent tels quels.", {"standalone" => "false"})
+      output.should contain("C++")
+      output.should contain("a+b+c")
+    end
+
+    it "treats plus as monospace, not passthrough, in compat mode" do
+      output = Asciicrystal.convert(":gem: asciidoctor\n\nLe +{gem}+ gem.",
+        {"standalone" => "false", "attributes" => "compat-mode"})
+      output.should contain("<code>asciidoctor</code>")
+    end
+
     it "should extract and restore double plus passthrough" do
       block = create_block
       extracted = block.extract_passthroughs("one++<em>two</em>++three")
