@@ -40,6 +40,30 @@ describe Asciicrystal::Section do
       sec.id.should eq("_were_back")
     end
 
+    # Valeurs attendues relevées avec Asciidoctor Ruby : l'identifiant se
+    # calcule sur le titre converti, pas sur la source.
+    it "synthetic id is computed from the converted title (link)" do
+      sec = block_from_string(":sectids:\n\n== Voir https://example.org[le site]")
+      sec.id.should eq("_voir_le_site")
+    end
+
+    it "synthetic id is computed from the converted title (passthrough, replacements)" do
+      block_from_string(":sectids:\n\n== Mot-clé pass:[<em>x</em>]").id.should eq("_mot_clé_x")
+      block_from_string(":sectids:\n\n== C++ (C) -> fin").id.should eq("_c_fin")
+    end
+
+    it "synthetic id of a discrete heading is computed from the converted title" do
+      blk = block_from_string(":sectids:\n\n[discrete]\n== Flottant https://example.org[le site]")
+      blk.id.should eq("_flottant_le_site")
+    end
+
+    it "section title keeps attribute values in scope and unformatted" do
+      doc = Asciicrystal.load(":sectids:\n:gras: *x*\n\n== Attr {gras}\n\n:gras: autre\n", {"standalone" => "false"})
+      sec = doc.blocks.first
+      sec.id.should eq("_attr_x")
+      sec.title.should eq("Attr *x*")
+    end
+
     it "synthetic id collapses repeating spaces" do
       sec = block_from_string(":sectids:\n\n== Go    Far")
       sec.id.should eq("_go_far")

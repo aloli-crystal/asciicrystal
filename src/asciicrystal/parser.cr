@@ -1057,10 +1057,6 @@ module Asciicrystal
               # Parse the title from the ATX heading line
               if (m = AtxSectionTitleRx.match(this_line)) || (COMPLIANCE_MARKDOWN_SYNTAX && (m = ExtAtxSectionTitleRx.match(this_line)))
                 float_title = m[2]
-                # Apply attribute substitutions to the title
-                if float_title.includes?(ATTR_REF_HEAD)
-                  float_title = document.sub_attributes(float_title)
-                end
                 float_id = attributes["id"]?
                 block = Block.new(parent, :floating_title, content_model: ContentModel::Empty)
                 block.title = float_title
@@ -1069,7 +1065,8 @@ module Asciicrystal
                 if float_id
                   block.id = float_id
                 elsif document.attributes.has_key?("sectids")
-                  block.id = Section.generate_id(float_title, document)
+                  # Titre converti, comme pour une section (voir initialize_section).
+                  block.id = Section.generate_id(block.title || "", document)
                 end
                 return finalize_block(block, document, reader, attributes, style)
               end
@@ -1552,18 +1549,18 @@ module Asciicrystal
         section.attributes["reftext"] = reftext
       end
 
-      # Apply attribute substitutions to the section title
-      if sect_title.includes?(ATTR_REF_HEAD)
-        sect_title = document.sub_attributes(sect_title)
-        section.title = sect_title
-      end
-
-      # Generate an ID if one was not provided
+      # Comme Asciidoctor, l'identifiant se calcule sur le titre CONVERTI
+      # (`section.title`) : un lien, `pass:[]` ou `(C)` y sont déjà rendus,
+      # et « Voir https://example.org[le site] » donne `_voir_le_site`, non
+      # `_voir_httpsexample_orgle_site`. La conversion est mise en cache,
+      # ce qui fige aussi les références d'attributs tant qu'elles sont
+      # dans leur portée.
       if (id = section.id)
         section.id = nil if id.empty?
       elsif document.attributes.has_key?("sectids")
-        section.id = Section.generate_id(sect_title, document)
+        section.id = Section.generate_id(section.title || "", document)
       end
+      section.title if sect_title.includes?(ATTR_REF_HEAD)
 
       # Register the section in the document catalog for ID deduplication and xrefs
       if (sect_id_val = section.id)
