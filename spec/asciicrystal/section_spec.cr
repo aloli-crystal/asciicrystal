@@ -774,7 +774,9 @@ describe Asciicrystal::Section do
     it "respects custom idprefix" do
       doc = Asciicrystal::Document.new
       doc.attributes["idprefix"] = "id-"
-      Asciicrystal::Section.generate_id("Hello World", doc).should eq("id-hello_world")
+      # Comme Asciidoctor : le préfixe passe lui aussi par la fusion des
+      # séparateurs, son tiret devient donc `_`.
+      Asciicrystal::Section.generate_id("Hello World", doc).should eq("id_hello_world")
     end
 
     it "respects custom idseparator" do
@@ -797,6 +799,47 @@ describe Asciicrystal::Section do
       doc = Asciicrystal::Document.new
       doc.attributes["idprefix"] = ""
       Asciicrystal::Section.generate_id("Hello World", doc).should eq("hello_world")
+    end
+
+    # Valeurs attendues relevées avec Asciidoctor Ruby (Section.generate_id).
+    it "keeps accented letters like Asciidoctor" do
+      doc = Asciicrystal::Document.new
+      Asciicrystal::Section.generate_id("Détails", doc).should eq("_détails")
+      Asciicrystal::Section.generate_id("Élan vital", doc).should eq("_élan_vital")
+      Asciicrystal::Section.generate_id("Déjà vu ?", doc).should eq("_déjà_vu")
+    end
+
+    it "squeezes hyphens, dots and spaces into one separator like Asciidoctor" do
+      doc = Asciicrystal::Document.new
+      Asciicrystal::Section.generate_id("Sous-section", doc).should eq("_sous_section")
+      Asciicrystal::Section.generate_id("A - B", doc).should eq("_a_b")
+      Asciicrystal::Section.generate_id("Version 2.0", doc).should eq("_version_2_0")
+      Asciicrystal::Section.generate_id("Fin.", doc).should eq("_fin")
+    end
+
+    it "keeps hyphens when idseparator is a hyphen" do
+      doc = Asciicrystal::Document.new
+      doc.attributes["idseparator"] = "-"
+      Asciicrystal::Section.generate_id("Sous-section", doc).should eq("_sous-section")
+    end
+
+    it "only removes spaces when idseparator is empty" do
+      doc = Asciicrystal::Document.new
+      doc.attributes["idseparator"] = ""
+      Asciicrystal::Section.generate_id("Sous-section", doc).should eq("_sous-section")
+    end
+
+    it "keeps only the first character of a multi-character idseparator" do
+      doc = Asciicrystal::Document.new
+      doc.attributes["idseparator"] = "::"
+      Asciicrystal::Section.generate_id("Sous-section", doc).should eq("_sous:section")
+      doc.attributes["idseparator"].should eq(":")
+    end
+
+    it "drops a leading separator when idprefix is empty" do
+      doc = Asciicrystal::Document.new
+      doc.attributes["idprefix"] = ""
+      Asciicrystal::Section.generate_id("-Début", doc).should eq("début")
     end
 
     it "handles empty idseparator" do

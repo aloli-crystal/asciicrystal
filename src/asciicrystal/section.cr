@@ -134,14 +134,36 @@ module Asciicrystal
     # Generate a String id from the given section title and document.
     # If the generated id already exists in the document catalog, a numeric
     # suffix is appended to make it unique (e.g., _my_section_2).
+    #
+    # Suit `Section.generate_id` d'Asciidoctor : les lettres accentuées sont
+    # conservées (`\p{Word}`, « Détails » → `_détails`), et espaces, points,
+    # tirets et séparateurs consécutifs se fondent en un seul séparateur
+    # (« Sous-section » → `_sous_section`), sans séparateur final.
     def self.generate_id(title : String, document : Document) : String
-      prefix = document.attributes["idprefix"]? || "_"
-      separator = document.attributes["idseparator"]? || "_"
-      base_id = title.downcase
-        .gsub(/[^a-z0-9 -]/, "")
-        .strip
-        .gsub(/\s+/, separator)
-      candidate = "#{prefix}#{base_id}"
+      attrs = document.attributes
+      prefix = attrs["idprefix"]? || "_"
+      no_separator = false
+      if separator = attrs["idseparator"]?
+        if separator.empty?
+          no_separator = true
+        elsif separator.size > 1
+          # Asciidoctor ne garde que le premier caractère, et le mémorise.
+          separator = attrs["idseparator"] = separator[0].to_s
+        end
+        squeezed = separator == "-" || separator == "." ? " .-" : " #{separator}.-"
+      else
+        separator = "_"
+        squeezed = " _.-"
+      end
+      candidate = "#{prefix}#{title.downcase.gsub(InvalidSectionIdCharsRx, "")}"
+      if no_separator
+        candidate = candidate.delete(' ')
+      else
+        # Équivalent de `tr_s(squeezed, separator)` en Ruby.
+        candidate = candidate.gsub(/[#{squeezed.chars.map { |c| Regex.escape(c.to_s) }.join}]+/, separator)
+        candidate = candidate.rchop(separator)
+        candidate = candidate.lchop(separator) if prefix.empty?
+      end
       if document.catalog.refs.has_key?(candidate)
         count = 2
         while document.catalog.refs.has_key?("#{candidate}#{separator}#{count}")
