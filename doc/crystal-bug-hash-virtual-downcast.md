@@ -1,8 +1,9 @@
 # Codegen BUG: "trying to downcast Gen(String)+ <- Gen(String)" when a generic instance is reassigned from a recursive call returning a tuple
 
 <!--
-Draft of an issue for https://github.com/crystal-lang/crystal/issues — not yet
-filed. Found while using the `asciicrystal` shard from a Marten application
+Filed as https://github.com/crystal-lang/crystal/issues/17507. Root cause and
+proposed fix: crystal-bug-17507-comment.md and crystal-bug-17507-fix.patch.
+Found while using the `asciicrystal` shard from a Marten application
 (Marten defines `class MatchParameters < Hash(String, Parameter::Types)`).
 Worked around in asciicrystal 2.0.26.23 (src/asciicrystal/parser.cr,
 `Parser#next_section`).

@@ -1,0 +1,95 @@
+--- a/spec/compiler/codegen/def_spec.cr	2026-09-29 15:03:55.468701408 +0200
++++ b/spec/compiler/codegen/def_spec.cr	2026-09-29 15:03:55.470647244 +0200
+@@ -568,4 +568,46 @@
+       foo { |a, b| }
+       CRYSTAL
+   end
++
++  it "codegens recursive def whose tuple return restriction holds a virtual generic instance (#17507)" do
++    run(<<-CRYSTAL).to_i.should eq(1)
++      class Gen(T)
++      end
++
++      class Sub < Gen(Int32)
++      end
++
++      def f(g : Gen(String), n : Int32) : {Int32, Gen(String)}
++        while n > 0
++          if 1
++            _, g = f(g, n &- 1)
++          end
++          n &-= 1
++        end
++        {1, Gen(String).new}
++      end
++
++      f(Gen(String).new, 2)[0]
++      CRYSTAL
++  end
++
++  it "types recursive def whose tuple return restriction holds a virtual generic instance, without if (#17507)" do
++    run(<<-CRYSTAL).to_i.should eq(1)
++      class Gen(T)
++      end
++
++      class Sub < Gen(Int32)
++      end
++
++      def f(g : Gen(String), n : Int32) : {Int32, Gen(String)}
++        while n > 0
++          _, g = f(g, n &- 1)
++          n &-= 1
++        end
++        {1, Gen(String).new}
++      end
++
++      f(Gen(String).new, 2)[0]
++      CRYSTAL
++  end
+ end
+--- a/src/compiler/crystal/semantic/ast.cr	2026-09-29 15:03:55.449544132 +0200
++++ b/src/compiler/crystal/semantic/ast.cr	2026-09-29 15:03:55.451832593 +0200
+@@ -144,6 +144,11 @@
+     property next : Def?
+     property special_vars : Set(String)?
+     property freeze_type : Type?
++
++    # Set when `type?` handed out `freeze_type` because the body was not
++    # typed yet (a recursive call). The def's type must not shrink below
++    # that provisional type afterwards, see `restrict_type_to_freeze_type`.
++    property? freeze_type_exposed = false
+     property block_nest = 0
+     property? raises = false
+     property? closure = false
+--- a/src/compiler/crystal/semantic/bindings.cr	2026-09-29 15:03:55.459238603 +0200
++++ b/src/compiler/crystal/semantic/bindings.cr	2026-09-29 15:03:55.461773607 +0200
+@@ -83,7 +83,12 @@
+     end
+ 
+     def type?
+-      @type || freeze_type
++      if type = @type
++        type
++      elsif freeze_type = self.freeze_type
++        self.freeze_type_exposed = true if self.is_a?(Def)
++        freeze_type
++      end
+     end
+ 
+     def type(*, with_autocast = false)
+@@ -307,6 +312,15 @@
+     #
+     # Special cases are listed inside the method body.
+     def restrict_type_to_freeze_type(freeze_type, type)
++      # A def whose declared return type was already used as its provisional
++      # type (recursive call typed before the body) keeps that type: letting
++      # it shrink to the body's narrower type leaves dependent nodes with
++      # stale, wider types (codegen "BUG: trying to downcast" or endless
++      # recalculation).
++      if self.is_a?(Def) && self.freeze_type_exposed? && type != freeze_type && type.implements?(freeze_type)
++        return freeze_type
++      end
++
+       if freeze_type.is_a?(ProcInstanceType)
+         # We allow assigning Proc(*T, R) to Proc(*T, Nil)
+         if freeze_type.return_type.nil_type? &&
