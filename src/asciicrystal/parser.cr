@@ -942,7 +942,15 @@ module Asciicrystal
         end
       end
 
-      {section == parent ? nil : section.as(Section), attributes.dup}
+      # Contournement d'un bogue de Crystal 1.19 (voir
+      # doc/crystal-bug-hash-virtual-downcast.md) : dès qu'un programme
+      # définit une sous-classe de Hash — `MatchParameters` chez Marten —,
+      # le type de retour déclaré devient `Tuple(Section?, Hash(String, String)+)`
+      # et la copie non virtuelle renvoyée ici, conjuguée à la réaffectation
+      # d'`attributes` par l'appel récursif dans la boucle, fait planter le
+      # codegen (« trying to downcast Hash(String, String)+ <- Hash(String, String) »).
+      # Le `.as` explicite suffit à l'éviter, sans changer la sémantique.
+      {section == parent ? nil : section.as(Section), attributes.dup.as(Hash(String, String))}
     end
 
     # Parse and return the next Block at the Reader's current location.
