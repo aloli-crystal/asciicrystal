@@ -1,5 +1,5 @@
 name: asciicrystal
-version: 2.0.26.26
+version: 2.0.26.27
 
 description: |
   A Crystal port of the Asciidoctor document processor.
