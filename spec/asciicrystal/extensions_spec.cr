@@ -564,6 +564,37 @@ describe Asciicrystal::Extensions do
       end
     end
 
+    # Valeurs attendues relevées avec Asciidoctor Ruby.
+    describe "#create_section" do
+      it "generates the id from the converted title and stores it in attrs" do
+        doc = Asciicrystal.load("= Doc\n\ntexte")
+        attrs = {} of String => String
+        sect = SnippetBlockMacro.new.create_section(doc, "Voir https://example.org[le site]", attrs)
+        sect.id.should eq("_voir_le_site")
+        attrs["id"]?.should eq("_voir_le_site")
+      end
+
+      it "makes the generated id unique within the document" do
+        doc = Asciicrystal.load("= Doc\n\n== Déjà là\n")
+        sect = SnippetBlockMacro.new.create_section(doc, "Déjà là", {} of String => String)
+        sect.id.should eq("_déjà_là_2")
+      end
+
+      it "keeps an explicit id" do
+        doc = Asciicrystal.load("= Doc\n\ntexte")
+        sect = SnippetBlockMacro.new.create_section(doc, "Autre", {"id" => "perso"})
+        sect.id.should eq("perso")
+      end
+
+      it "generates no id when sectids is unset" do
+        doc = Asciicrystal.load("= Doc\n:sectids!:\n\ntexte")
+        attrs = {} of String => String
+        sect = SnippetBlockMacro.new.create_section(doc, "Autre", attrs)
+        sect.id.should be_nil
+        attrs.has_key?("id").should be_false
+      end
+    end
+
     describe "#create_image_block" do
       it "creates an image block with target" do
         doc = Asciicrystal::Document.new

@@ -127,8 +127,11 @@ module Asciicrystal
         numbered = opts[:numbered]?.try { |v| v.as(Bool) } || false
         sect = Section.new(doc, parent, level, numbered)
         sect.title = title
-        if (id = attrs["id"]?)
-          sect.id = id
+        # Comme Asciidoctor : sans `id` fourni, l'identifiant est généré
+        # (si `sectids` est actif) sur le titre converti, et reporté dans
+        # les attributs.
+        if (id = attrs["id"]? || (doc.attributes.has_key?("sectids") ? Section.generate_id(sect.title || "", doc) : nil))
+          sect.id = attrs["id"] = id
         end
         sect.update_attributes(attrs)
         sect
