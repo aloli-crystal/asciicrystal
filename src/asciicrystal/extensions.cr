@@ -123,10 +123,45 @@ module Asciicrystal
       # Creates a Section node.
       def create_section(parent : AbstractBlock, title : String, attrs : Hash(String, String), opts : Hash(Symbol, Int32 | Bool) = {} of Symbol => Int32 | Bool) : Section
         doc = parent.document
-        level = opts[:level]?.try { |v| v.as(Int32) } || parent.level + 1
-        numbered = opts[:numbered]?.try { |v| v.as(Bool) } || false
-        sect = Section.new(doc, parent, level, numbered)
-        sect.title = title
+        book = (doctype = doc.doctype) == "book"
+        level = opts[:level]?.try(&.as(Int32)) || parent.level + 1
+        special = false
+        # Nom et caractère « spécial » de la section, comme Asciidoctor :
+        # le style (`appendix`, `glossary`…) fait une section spéciale, un
+        # livre a ses parties et chapitres, une page de manuel son synopsis.
+        if (style = attrs.delete("style"))
+          if book && style == "abstract"
+            sectname, level = "chapter", 1
+          else
+            sectname, special = style, true
+            level = 1 if level == 0
+          end
+        elsif book
+          sectname = level == 0 ? "part" : (level > 1 ? "section" : "chapter")
+        elsif doctype == "manpage" && title.compare("synopsis", case_insensitive: true) == 0
+          sectname, special = "synopsis", true
+        else
+          sectname = "section"
+        end
+        sect = Section.new(doc, parent, level)
+        sect.title, sect.sectname = title, sectname
+        # Numérotation, comme Asciidoctor. Là où Ruby distingue `:chapter`,
+        # le port n'a qu'un booléen : `numbered` vaut alors `true`.
+        numbered_opt = opts[:numbered]?.try(&.as(Bool))
+        if special
+          sect.special = true
+          if numbered_opt.nil? ? style == "appendix" : numbered_opt
+            sect.numbered = true
+          elsif numbered_opt.nil? && doc.attr?("sectnums", "all")
+            sect.numbered = true
+          end
+        elsif level > 0
+          if numbered_opt.nil? ? doc.attr?("sectnums") : numbered_opt
+            sect.numbered = sect.special? ? parent.is_a?(Section) && parent.numbered : true
+          end
+        elsif numbered_opt.nil? ? book && doc.attr?("partnums") : numbered_opt
+          sect.numbered = true
+        end
         # Comme Asciidoctor : sans `id` fourni, l'identifiant est généré
         # (si `sectids` est actif) sur le titre converti, et reporté dans
         # les attributs.

@@ -586,6 +586,46 @@ describe Asciicrystal::Extensions do
         sect.id.should eq("perso")
       end
 
+      it "makes a styled section special and consumes the style" do
+        doc = Asciicrystal.load("= Doc\n:sectnums:\n\ntexte")
+        attrs = {"style" => "appendix"}
+        sect = SnippetBlockMacro.new.create_section(doc, "Annexe", attrs)
+        {sect.sectname, sect.special?, sect.numbered}.should eq({"appendix", true, true})
+        attrs.has_key?("style").should be_false
+        glossary = SnippetBlockMacro.new.create_section(doc, "Glossaire", {"style" => "glossary"})
+        {glossary.sectname, glossary.special?, glossary.numbered}.should eq({"glossary", true, false})
+      end
+
+      it "numbers special sections when sectnums is all" do
+        doc = Asciicrystal.load("= Doc\n:sectnums: all\n\ntexte")
+        sect = SnippetBlockMacro.new.create_section(doc, "Glossaire", {"style" => "glossary"})
+        sect.numbered.should be_true
+      end
+
+      it "follows sectnums unless the numbered option says otherwise" do
+        doc = Asciicrystal.load("= Doc\n:sectnums:\n\ntexte")
+        processor = SnippetBlockMacro.new
+        processor.create_section(doc, "Simple", {} of String => String).numbered.should be_true
+        opts = {:numbered => false} of Symbol => Int32 | Bool
+        processor.create_section(doc, "Simple", {} of String => String, opts).numbered.should be_false
+      end
+
+      it "names parts and chapters in a book" do
+        doc = Asciicrystal.load("= Livre\n:doctype: book\n:partnums:\n\ntexte")
+        processor = SnippetBlockMacro.new
+        part = processor.create_section(doc, "Partie", {} of String => String, {:level => 0} of Symbol => Int32 | Bool)
+        {part.sectname, part.numbered}.should eq({"part", true})
+        processor.create_section(doc, "Chapitre", {} of String => String).sectname.should eq("chapter")
+        resume = processor.create_section(doc, "Résumé", {"style" => "abstract"}, {:level => 0} of Symbol => Int32 | Bool)
+        {resume.sectname, resume.level}.should eq({"chapter", 1})
+      end
+
+      it "makes a synopsis section special in a manpage" do
+        doc = Asciicrystal.load("= prog(1)\n:doctype: manpage\n\n== NAME\n\nprog - x\n")
+        sect = SnippetBlockMacro.new.create_section(doc, "Synopsis", {} of String => String)
+        {sect.sectname, sect.special?}.should eq({"synopsis", true})
+      end
+
       it "generates no id when sectids is unset" do
         doc = Asciicrystal.load("= Doc\n:sectids!:\n\ntexte")
         attrs = {} of String => String
